@@ -2,6 +2,24 @@ version: '3.9'
 
 services:
 
+  destination_db:
+    build:
+      context: ./destination_db/
+      target: base
+    restart: always
+    networks:
+      kafka-replication-db-network:
+        ipv4_address: 10.5.0.7
+    ports:
+      - 4043:4043
+    volumes:
+      - kafka_destination_db_volume:/var/lib/postgresql/data
+    env_file:
+      - ./destination_db/env/credentials.env
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    hostname: destination_db
+    container_name: destination_db
+
   source_db:
     build:
       context: ./source_db/
@@ -43,6 +61,8 @@ services:
       - zookeeper
     volumes:
       - ./kafka/src/:/app/
+    env_file:
+      - ./kafka/env/database.env
     environment:
       ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://localhost:29092, LISTENER_INT://kafka:9092
@@ -81,3 +101,4 @@ networks:
 
 volumes:
   kafka_source_db_volume:
+  kafka_destination_db_volume:

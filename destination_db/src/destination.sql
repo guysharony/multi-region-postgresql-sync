@@ -9,4 +9,3 @@ CREATE TABLE holding (
 );
 
 ALTER TABLE holding replica identity FULL;
-INSERT INTO holding VALUES (1000, 1, 'VFIAX', 10, now(), now());

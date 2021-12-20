@@ -2,4 +2,4 @@ FROM debezium/kafka AS base
 
 WORKDIR /app
 COPY ./src .
-RUN pip install kafka-python requests
+RUN pip install kafka-python requests psycopg2-binary

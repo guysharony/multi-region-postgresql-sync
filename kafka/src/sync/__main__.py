@@ -1,4 +1,7 @@
 import requests
+import json
+
+from utils.db import DB
 from kafka import KafkaConsumer
 
 
@@ -28,8 +31,6 @@ class Connectors:
 
 		r = requests.post(self.url + '/connectors/', data=contents, headers=headers)
 
-		print(r.status_code, r.json())
-
 		if r.status_code != 201:
 			raise IndexError('Failed to create connectors.')
 
@@ -44,8 +45,14 @@ class Connectors:
 if __name__ == '__main__':
 	connectors = Connectors('http://10.5.0.6:8083')
 
-	print('Connectors: ', connectors.connectors)
-
-	consumer = KafkaConsumer('SOURCE.bank.holding')
+	consumer = KafkaConsumer('SOURCE.public.holding')
 	for msg in consumer:
-		print('Event [', msg.key, ']: ' , msg.value)
+		input_json = json.loads(msg.value)
+		op_type = input_json.get('op')
+
+		if op_type == 'c':
+			after = input_json.get('after', {})
+
+			fetch = DB('DESTINATION')
+			fetch.insert('holding', list(after.keys()))
+			fetch.execute(list(after.values()))
