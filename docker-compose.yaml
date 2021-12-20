@@ -1,0 +1,83 @@
+version: '3.9'
+
+services:
+
+  source_db:
+    build:
+      context: ./source_db/
+      target: base
+    restart: always
+    networks:
+      kafka-replication-db-network:
+        ipv4_address: 10.5.0.5
+    ports:
+      - 4042:4042
+    volumes:
+      - kafka_source_db_volume:/var/lib/postgresql/data
+    env_file:
+      - ./source_db/env/credentials.env
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    hostname: source_db
+    container_name: source_db
+
+  zookeeper:
+    image: debezium/zookeeper
+    ports:
+      - 2181:2181
+    networks:
+      - kafka-replication-db-network
+    hostname: zookeeper
+    container_name: zookeeper
+
+  kafka:
+    build:
+      context: ./kafka/
+      target: base
+    ports:
+      - 29092:29092
+    expose:
+      - 9092
+    networks:
+      - kafka-replication-db-network
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./kafka/src/:/app/
+    environment:
+      ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://localhost:29092, LISTENER_INT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_INT:PLAINTEXT, LISTENER_EXT:PLAINTEXT
+      KAFKA_LISTENERS: LISTENER_INT://0.0.0.0:9092, LISTENER_EXT://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
+    hostname: kafka
+    container_name: kafka
+
+  connect:
+    image: debezium/connect
+    ports:
+      - 8083:8083
+    networks:
+      kafka-replication-db-network:
+        ipv4_address: 10.5.0.6
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: sde_group
+      CONFIG_STORAGE_TOPIC: sde_storage_topic
+      OFFSET_STORAGE_TOPIC: sde_offset_topic
+      STATUS_STORAGE_TOPIC: sde_status_topic
+    depends_on:
+      - zookeeper
+      - kafka
+    hostname: connect
+    container_name: connect
+
+networks:
+  kafka-replication-db-network:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1
+
+volumes:
+  kafka_source_db_volume:

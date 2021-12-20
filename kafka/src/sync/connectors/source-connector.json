@@ -1,0 +1,19 @@
+{
+    "name": "source-connector",
+    "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "tasks.max": "1",
+        "plugin.name": "wal2json",
+        "database.hostname": "192.168.2.1",
+        "database.port": "4042",
+        "database.user": "source_user",
+        "database.password": "password_source",
+        "database.dbname": "source",
+        "database.server.name": "SOURCE",
+        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "key.converter.schemas.enable": "false",
+        "value.converter.schemas.enable": "false",
+        "snapshot.mode": "always"
+    }
+}
